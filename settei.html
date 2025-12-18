@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>duel_book</title>
+    <link href="https://fonts.googleapis.com/css?family=Noto+Sans+JP" rel="stylesheet" />
+    <link rel="stylesheet" href="./css/duel_book.css">
+<body id="settei">
+    <div id="main_settei">
+        <input type="text" id="player1" placeholder="プレイヤー１のなまえ">
+        <input type="text" id="player2" placeholder="プレイヤー2のなまえ">    
+        <input type="text" id="search_word" placeholder="本のけんさくワード">
+        <button id="go_duel">たたかいをはじめる</button>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>    
+    
+    <script>
+        // 画面遷移
+        $('#go_duel').on('click',function () {  
+            const player1=$('#player1').val();
+            const player2=$('#player2').val();
+            const search_word=$('#search_word').val();
+
+            // player1, player2, search_word のいずれも有効な値が入力されていない場合に実行
+            if (!player1 || !player2 || !search_word) {
+                alert("いずれかの入力欄が空です。入力してください。");
+            }
+            else{
+                const url=`duel.html?player1=${player1}&player2=${player2}&search_word=${search_word}`
+                window.location.href = url;        
+                // 値をリセット
+                $('#player1').val('');
+                $('#player2').val('');
+                $('#search_word').val('');
+            }
+        });
+    </script>
+    
+</body>
+</html>

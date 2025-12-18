@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>duel_book</title>
+    <link href="https://fonts.googleapis.com/css?family=Noto+Sans+JP" rel="stylesheet" />
+    <link rel="stylesheet" href="./css/duel_book.css">
+<body id="duel">
+    <div id="duel_room">
+        <section id="player1_area">
+            <div id="player1_name">
+            </div>
+            
+            <div id="player1_point" class="point">
+                ポイント<br>『0』
+            </div>
+        </section>
+
+        <section id="bookinfo_area">
+            <div id="odai">
+                ３つ選んでページ数を○にしたほうが勝ち！
+                ダブルクリックで選択！
+            </div>
+            
+            <div id="book_list">
+            </div>
+
+            <div id="game_option">
+                <input type="text" id="reset_search_word" placeholder="本のけんさくワード">
+                <button id="one_more">もう1回</button>
+
+            </div>
+        </section>
+
+        <section id="player2_area">
+            <div id="player2_name">
+            </div>
+            
+            <div id="player2_point" class="point">
+                ポイント<br>『0』
+            </div>
+        </section>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    
+    <!-- axiosライブラリの読み込み -->
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script> 
+    
+    <script>
+        // URLから情報を取得
+        const queryurl = window.location.search;
+        const params = new URLSearchParams(queryurl);
+        
+        // 取得した情報を設定
+        const player1 = params.get('player1');
+        const player2 = params.get('player2');
+        let search_word = params.get('search_word');
+
+        // 各種値の定義
+        let target = 0; 
+        let player1_page = 0;
+        let player2_page = 0;
+        let click_count = 0;
+
+        // ページが始まったら初期設定
+        $(document).ready(function(){
+            $('#player1_name').text(player1);
+            $('#player2_name').text(player2);
+            
+            // 本の検索・表示関数の実行
+            bookSearch(search_word);
+        });
+
+        // クリックでページカウント
+        $('#book_list').on('dblclick', '.book_card', function () {
+            // すでに3回ずつ（合計6回）選んでいたら終了
+            if (click_count >= 6) {
+                alert("全員選び終わりました！");
+                return;
+            }
+
+            // 文字列を数値に変換
+            const page = parseInt($(this).val()) || 0; 
+            
+            // 現在のクリック数から、どちらのターンか判定
+            // 偶数：Player 1、奇数：Player 2
+            if (click_count % 2 === 0) {
+                player1_page += page;
+                let player1_page_left = target - player1_page;
+                $('#player1_point').html('ポイント<br>'+player1_page+'<br><p class="page_left">残り'+player1_page_left+'</p>');
+
+            } else {
+                player2_page += page;
+                let player2_page_left = target - player2_page;
+                $('#player2_point').html('ポイント<br>'+player2_page+'<br><p class="page_left">残り'+player2_page_left+'</p>');
+            }
+
+            // クリックしたカードの上にページ数を表示
+            $(this).find('.page_overlay').text(page+'p').css('display', 'flex').hide().fadeIn();
+
+            // クリックしたカードを消す、または無効化する
+            $(this).prop('disabled', true);
+
+            click_count++;
+
+            // 3冊ずつ選び終わった瞬間に勝敗判定
+            if (click_count === 6) {
+                setTimeout(function() {
+                   judgeWinner();
+                }, 2000);
+            }
+        });
+
+        // もう1回ボタンを押した時の挙動
+        $('#one_more').on('click',function () {  
+            // 新しい検索ワードの取得
+            const search_word2=$('#reset_search_word').val();
+
+            // 各種リセット
+            $("#book_list").html('');
+            player1_page = 0;
+            player2_page = 0;
+            click_count = 0;
+            $('#player1_point').html('ポイント<br>『0』');
+            $('#player2_point').html('ポイント<br>『0』');
+
+            // 本の検索・表示関数の実行
+            bookSearch(search_word2);
+        });
+
+        // 本の検索表示関数
+        function bookSearch(search_word){
+            // リクエストを送るurlを準備
+            const search_url = `https://www.googleapis.com/books/v1/volumes?langRestrict=ja&printType=books&q=intitle:${search_word}`;
+            
+            // httpsでリクエストを送ってレスポンスをもらう
+            axios.get(search_url)
+            .then(function(response){
+                console.log(response.data);
+                const items = response.data.items;
+
+                if (!items || items.length < 9) {
+                    alert("本が足りません。検索ワードを変えてください");
+                    return;
+                }
+                
+                // 目標値の決定
+                target = targetScore(items);
+                $('#odai').html('３つ選んで合計ページ数が『'+target+'』に近い方が勝ち！<br>ダブルクリックで選択！')
+                
+                // 本の表示 
+                const elements = [];
+                for(i=0;i<9;i++){
+                    if(response.data.items[i].volumeInfo.imageLinks){
+                        let page=response.data.items[i].volumeInfo.pageCount ?? 0
+                        elements.push('<img src="'+response.data.items[i].volumeInfo.imageLinks.thumbnail+'"class="bookcover">'+'<div class="text_content">' + '<p class="authors">' + (response.data.items[i].volumeInfo.authors ?? '著者不明') +'</p> <p class="discription">'+ (response.data.items[i].searchInfo?.textSnippet ?? '説明なし')  + '</p></dev> <div class="page_overlay"></div>');
+                        $("#book_list").append('<button class="book_card" value="'+ page +'">'+elements[i]+'</button>');
+                    }else{
+                        let page=response.data.items[i].volumeInfo.pageCount ?? 0
+                        elements.push('<img src="" class="bookcover" alt="NoImage">'+'<div class="text_content">' + '<p class="authors">' + (response.data.items[i].volumeInfo.authors ?? '著者不明')+'</p> <p class="discription">'+ (response.data.items[i].searchInfo?.textSnippet ?? '説明なし')  + '</p></dev> <div class="page_overlay"></div>');
+                        $("#book_list").append('<button class="book_card" value="'+ page +'">'+elements[i]+'</button>');
+                    }
+                }
+            })
+
+            //エラーの時の対処
+            .catch(function(error) { 
+                console.log(error);
+            });
+        }
+
+        // 目標値計算の関数
+        function targetScore(items) {
+            let totalAllPages = 0;
+
+            for (let i = 0; i < 9; i++) {
+                // ページ数がなかったら0にする
+                const page = items[i].volumeInfo.pageCount ?? 0;
+                totalAllPages += page;
+            }
+
+            const targetScore = Math.floor(totalAllPages / 3);
+
+            return targetScore;
+        }
+
+        // 勝敗判定関数
+        function judgeWinner() {
+            const player1_result = Math.abs(target - player1_page);
+            const player2_result = Math.abs(target - player2_page);
+            
+            if (player1_result < player2_result) {
+                alert(player1+"さんの勝ち！");
+            } else if (player2_result < player1_result) {
+                alert(player2+"さんの勝ち！");
+            } else {
+                alert("引き分け！");
+            }
+        }
+
+    </script>
+</body>
+</html>

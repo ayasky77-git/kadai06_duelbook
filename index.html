@@ -3,15 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>kiroku</title>
+    <title>duel_book</title>
     <link href="https://fonts.googleapis.com/css?family=Noto+Sans+JP" rel="stylesheet" />
-    <link rel="stylesheet" href="./css/kiroku.css">
-</head>
-<body>
+    <link rel="stylesheet" href="./css/duel_book.css">
+<body id="index">
+    <div id="main">
+        <div id="opening">
+            <button id="go_ready">じゅんびする</button>
+        </div>
+    </div>
 
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>    
     
     <script>
+        // 画面遷移
+        $('#go_ready').on('click',function () {  
+            window.location.href = 'settei.html'; 
+        });
 
     </script>
     
